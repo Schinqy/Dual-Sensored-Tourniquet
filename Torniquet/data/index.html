@@ -1,0 +1,147 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eTourniquet</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+        h1 {
+            color: #333;
+            background-color: #ddd;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        p {
+            margin: 5px;
+            color: #666;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        input {
+            width: 100px;
+            padding: 5px;
+            font-size: 16px;
+            margin: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .editable {
+            border: 1px solid #000;
+            background-color: #fff;
+            border-radius: 4px;
+            display: inline-block;
+            padding: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>eTourniquet</h1>
+    
+    <p>Current Temperature: <span id="temperature" onclick="makeEditable('temperatureInput')">Loading...</span> °C</p>
+    <p>
+        Temperature: 
+        <button onclick="adjustValue('temperature', 'increase')">+</button>
+        <span id="temperatureInput" class="editable" contentEditable="true">0</span>
+        <button onclick="adjustValue('temperature', 'decrease')">-</button>
+    </p>
+    
+    <p>Current Pressure: <span id="pressure" onclick="makeEditable('pressureInput')">Loading...</span> mmHg</p>
+    <p>
+        Pressure: 
+        <button onclick="adjustValue('pressure', 'increase')">+</button>
+        <span id="pressureInput" class="editable" contentEditable="true">0</span>
+        <button onclick="adjustValue('pressure', 'decrease')">-</button>
+    </p>
+    
+    <p style="padding-top: 0.5vh;">Room Temperature: <span id="roomTemperature" onclick="makeEditable('roomTemperatureInput')">Loading...</span> °C</p>
+  
+
+    <script>
+        async function makeRequest(endpoint) {
+            try {
+                const response = await fetch(endpoint);
+                const data = await response.text();
+                console.log(data);
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        async function updateValues() {
+            try {
+                const tempResponse = await fetch('/getTemperature');
+                const tempData = await tempResponse.text();
+                document.getElementById('temperature').innerText = tempData;
+
+                const pressureResponse = await fetch('/getPressure');
+                const pressureData = await pressureResponse.text();
+                document.getElementById('pressure').innerText = pressureData;
+
+                const roomTemperatureResponse = await fetch('/getRoomTemperature');
+                const roomTemperatureData = await roomTemperatureResponse.text();
+                document.getElementById('roomTemperature').innerText = roomTemperatureData;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+       function makeEditable(inputId) {
+    const element = document.getElementById(inputId);
+    element.contentEditable = true;
+    element.classList.add('editable');
+    if (document.activeElement !== element) {
+        element.focus();
+    }
+}
+
+
+        function adjustValue(valueType, action) {
+            let inputValue = document.getElementById(`${valueType}Input`).innerText;
+            inputValue = parseFloat(inputValue);
+
+            if (isNaN(inputValue)) {
+                console.error('Invalid input value');
+                return;
+            }
+
+            if (action === 'increase') {
+                inputValue += 1.0;
+            } else if (action === 'decrease') {
+                inputValue -= 1.0;
+            }
+
+            inputValue = Math.min(Math.max(inputValue, 0), (valueType === 'temperature') ? 45 : 500);
+
+            document.getElementById(`${valueType}Input`).innerText = inputValue;
+           const endpoint = `/adjust${valueType.charAt(0).toUpperCase()}${valueType.slice(1)}?value=${inputValue}`;
+           makeRequest(endpoint);
+
+        }
+
+        // Update temperature and pressure periodically
+        setInterval(updateValues, 1000); // Update every 5 seconds
+
+        // Update temperature and pressure on page load
+        window.onload = function() {
+            updateValues();
+        };
+    </script>
+</body>
+</html>
